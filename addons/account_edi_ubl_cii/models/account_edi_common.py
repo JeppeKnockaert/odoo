@@ -892,6 +892,10 @@ class AccountEdiCommon(models.AbstractModel):
         product = self._import_product(**product_vals)
         product_uom = self.env['uom.uom']
         quantity_node = tree.find(xpath_dict['delivered_qty'])
+        if quantity_node is None:
+            # Fallback: a CreditNote with negative amounts has qty_factor=-1 like a negative Invoice,
+            # but uses CreditedQuantity instead of InvoicedQuantity (and vice versa).
+            quantity_node = tree.find('./{*}CreditedQuantity') or tree.find('./{*}InvoicedQuantity')
         if quantity_node is not None:
             delivered_qty = float(quantity_node.text)
             uom_xml = quantity_node.attrib.get('unitCode')

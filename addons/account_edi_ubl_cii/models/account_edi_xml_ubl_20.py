@@ -1182,9 +1182,9 @@ class AccountEdiXmlUBL20(models.AbstractModel):
         allowance_charges_line_vals, allowance_charges_logs = self._import_document_allowance_charges(tree, invoice, invoice.journal_id.type, qty_factor)
         logs += self._import_prepaid_amount(invoice, tree, './{*}LegalMonetaryTotal/{*}PrepaidAmount', qty_factor)
         line_tag = (
-            'InvoiceLine'
-            if invoice.move_type in ('in_invoice', 'out_invoice') or qty_factor == -1
-            else 'CreditNoteLine'
+            'CreditNoteLine'
+            if tree.tag == '{urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2}CreditNote'
+            else 'InvoiceLine'
         )
         invoice_line_vals, line_logs = self._import_lines(invoice, tree, './{*}' + line_tag, document_type=invoice.move_type, tax_type=invoice.journal_id.type, qty_factor=qty_factor)
         rounding_line_vals, rounding_logs = self._import_rounding_amount(invoice, tree, './{*}LegalMonetaryTotal/{*}PayableRoundingAmount', document_type=invoice.move_type, qty_factor=qty_factor)
