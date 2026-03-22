@@ -286,7 +286,7 @@ class AccountEdiXmlCii(models.AbstractModel):
         logs = []
         invoice_values = {}
         if qty_factor == -1:
-            logs.append(_("The invoice has been converted into a credit note and the quantities have been reverted."))
+            logs.append(_("The document has negative amounts: the quantities have been reverted."))
         role = 'SellerTradeParty' if invoice.journal_id.type == 'purchase' else 'BuyerTradeParty'
         partner, partner_logs = self._import_partner(invoice.company_id, **self._import_retrieve_partner_vals(tree, role))
         # Need to set partner before to compute bank and lines properly
@@ -398,13 +398,16 @@ class AccountEdiXmlCii(models.AbstractModel):
     def _get_import_document_amount_sign(self, tree):
         """
         In factur-x, an invoice has code 380 and a credit note has code 381. However, a credit note can be expressed
-        as an invoice with negative amounts. For this case, we need a factor to take the opposite of each quantity
-        in the invoice.
+        as an invoice with negative amounts and vice versa. For this case, we need a factor to take the opposite of
+        each quantity in the document.
         """
         move_type_code = tree.find('.//{*}ExchangedDocument/{*}TypeCode')
         if move_type_code is None:
             return None, None
         if move_type_code.text == '381':
+            amount_node = tree.find('.//{*}SpecifiedTradeSettlementHeaderMonetarySummation/{*}TaxBasisTotalAmount')
+            if amount_node is not None and float(amount_node.text) < 0:
+                return 'refund', -1
             return 'refund', 1
         if move_type_code.text == '380':
             amount_node = tree.find('.//{*}SpecifiedTradeSettlementHeaderMonetarySummation/{*}TaxBasisTotalAmount')

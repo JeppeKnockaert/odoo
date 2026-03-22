@@ -1139,7 +1139,7 @@ class AccountEdiXmlUBL20(models.AbstractModel):
         logs = []
         invoice_values = {}
         if qty_factor == -1:
-            logs.append(_("The invoice has been converted into a credit note and the quantities have been reverted."))
+            logs.append(_("The document has negative amounts: the quantities have been reverted."))
         role = "AccountingCustomer" if invoice.journal_id.type == 'sale' else "AccountingSupplier"
         partner, partner_logs = self._import_partner(invoice.company_id, **self._import_retrieve_partner_vals(tree, role))
         # Need to set partner before to compute bank and lines properly
@@ -1297,8 +1297,8 @@ class AccountEdiXmlUBL20(models.AbstractModel):
     def _get_import_document_amount_sign(self, tree):
         """
         In UBL, an invoice has tag 'Invoice' and a credit note has tag 'CreditNote'. However, a credit note can be
-        expressed as an invoice with negative amounts. For this case, we need a factor to take the opposite
-        of each quantity in the invoice.
+        expressed as an invoice with negative amounts and vice versa. For this case, we need a factor to take the
+        opposite of each quantity in the document.
         """
         if tree.tag == '{urn:oasis:names:specification:ubl:schema:xsd:Invoice-2}Invoice':
             amount_node = tree.find('.//{*}LegalMonetaryTotal/{*}TaxExclusiveAmount')
@@ -1306,5 +1306,8 @@ class AccountEdiXmlUBL20(models.AbstractModel):
                 return 'refund', -1
             return 'invoice', 1
         if tree.tag == '{urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2}CreditNote':
+            amount_node = tree.find('.//{*}LegalMonetaryTotal/{*}TaxExclusiveAmount')
+            if amount_node is not None and float(amount_node.text) < 0:
+                return 'refund', -1
             return 'refund', 1
         return None, None
